@@ -1,0 +1,1162 @@
+/* ===========================================================================
+   Cisma Fact Sandbox — consola de pruebas de la API
+   Una sola identidad, deliberadamente oscura: es un instrumento de trabajo
+   para programadores, no un documento. Todos los colores se pintan explicitos
+   para que no dependa del tema del sistema.
+   ======================================================================== */
+
+:root {
+  --bg:        #12171C;
+  --surface:   #1A2027;
+  --surface-2: #232B34;
+  --surface-3: #2B343E;
+  --line:      #2F3945;
+  --line-soft: #252E38;
+
+  --text:   #E9ECEF;
+  --muted:  #97A3B0;
+  --faint:  #6A7683;
+
+  --accent:      #4C8DF6;
+  --accent-dim:  #24507F;
+  --accent-soft: rgba(76, 141, 246, 0.14);
+
+  --ok:   #3FBF7F;
+  --err:  #F2585B;
+  --warn: #E8C54D;
+  --info: #5AA9E6;
+
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --num:  #C69AE8;              /* numeros dentro del JSON */
+  --sobre-accent: #FFFFFF;      /* texto encima del acento */
+
+  /* Las cadenas del JSON conservan el ambar: si tomaran el acento, se
+     confundirian con las claves, que ya van en azul. */
+  --cadena: #E8A33D;
+  --texto-aviso:  #D9D2B4;
+  --texto-error:  #FFC9CA;
+
+  --hoja: #fff;                 /* fondo de la vista previa del PDF */
+  --velo: rgba(6, 9, 12, .74);  /* fondo detras de un modal */
+  --sombra-modal: 0 22px 60px rgba(0, 0, 0, .5);
+
+  --rail: 232px;
+}
+
+/* ===========================================================================
+   Tema claro.
+
+   Mismo esqueleto, otra paleta: se redefinen las variables y con eso cambia
+   todo, porque el resto del archivo no menciona un solo color a pelo. El
+   ambar se oscurece a proposito — el de fondo negro no tiene contraste
+   suficiente sobre blanco y el texto se volvia ilegible.
+   ======================================================================== */
+
+:root[data-tema="claro"] {
+  /* El fondo es claramente mas oscuro que las tarjetas: si los dos son casi
+     blancos no se distingue donde acaba una cosa y empieza otra. */
+  --bg:        #E8ECF1;
+  --surface:   #FFFFFF;
+  --surface-2: #F3F6F9;
+  --surface-3: #E4E9EF;
+  --line:      #CFD7E0;
+  --line-soft: #E3E8EE;
+
+  --text:   #10141A;
+  --muted:  #4A5563;
+  --faint:  #74808F;
+
+  /* Un tono mas hondo que el del tema oscuro: el azul claro sobre blanco no
+     llega al contraste que necesita un texto pequeno. */
+  --accent:      #1D5FD8;
+  --accent-dim:  #9CBCF3;
+  --accent-soft: rgba(29, 95, 216, 0.10);
+
+  --ok:   #157F4C;
+  --err:  #C62128;
+  --warn: #9A7508;
+  --info: #1B62AE;
+
+  --num:  #6B3FA0;
+  --cadena: #9A5B00;
+  --sobre-accent: #FFFFFF;
+  --texto-aviso:  #4A3F14;
+  --texto-error:  #8A1418;
+
+  --hoja: #fff;
+  --velo: rgba(28, 34, 41, .48);
+  --sombra-modal: 0 18px 50px rgba(19, 26, 33, .22);
+
+  /* En oscuro la profundidad la dan los bordes; en claro, la sombra. Sin
+     esto las tarjetas parecen recortes de papel pegados al fondo. */
+  --sombra-card: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .07);
+  --sombra-rail: 1px 0 3px rgba(16, 24, 40, .05);
+}
+
+/* Lo activo del menu se pinta con el acento entero, no con un fondo palido:
+   en claro un fondo del 11% casi no se ve y el menu perdia el hilo de donde
+   estas. */
+:root[data-tema="claro"] .nav a.on {
+  background: var(--accent);
+  color: #fff;
+}
+:root[data-tema="claro"] .nav a.on svg { color: #fff; }
+
+:root[data-tema="claro"] .card,
+:root[data-tema="claro"] .metric { box-shadow: var(--sombra-card); }
+:root[data-tema="claro"] .rail { box-shadow: var(--sombra-rail); }
+
+/* El bloque de codigo se queda oscuro a proposito: un JSON con resaltado se
+   lee mejor asi, y es lo que espera quien programa. */
+:root[data-tema="claro"] pre.code {
+  background: #10161D;
+  border-color: #10161D;
+  color: #AFBACA;
+}
+:root[data-tema="claro"] pre.code .k { color: #7FB5E8; }
+:root[data-tema="claro"] pre.code .s { color: #E8A33D; }
+:root[data-tema="claro"] pre.code .n { color: #C69AE8; }
+:root[data-tema="claro"] pre.code .b { color: #5FD39B; }
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- Estructura */
+
+.app { display: grid; grid-template-columns: var(--rail) 1fr; height: 100vh; }
+
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.brand {
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.brand-name {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.brand-name b { color: var(--accent); font-weight: 600; }
+.brand-sub {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; }
+
+/* Dos niveles: la API y, dentro, sus grupos.
+
+   Antes solo habia uno y las siete etiquetas pesaban igual, asi que «Emitir»
+   y «RUC y DNI» —que son una parte y una API entera— se leian como hermanas. */
+.nav-api {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 8px 10px 6px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.nav-api:first-child { margin-top: 0; border-top: 0; padding-top: 2px; }
+
+.nav-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 12px 10px 4px 18px;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: background .12s, color .12s;
+}
+.nav a:hover { background: var(--surface-2); color: var(--text); }
+.nav a.on { background: var(--accent-soft); color: var(--accent); }
+.nav a svg { width: 16px; height: 16px; flex: none; }
+
+/* La conexion de cada API va al pie de SU bloque, no al fondo del menu.
+
+   Al fondo estaban las dos juntas y colgaban del ultimo grupo, asi que las de
+   emitir parecian ser tambien de RUC y DNI. Aqui cada una queda debajo de lo
+   que abre, separada por una linea suave porque se configura una vez y no se
+   usa a diario. */
+.nav a.nav-conexion {
+  margin-top: 6px;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0 0 5px 5px;
+  padding-top: 10px;
+  color: var(--faint);
+}
+.nav a.nav-conexion:hover { color: var(--text); }
+
+.rail-foot {
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* El boton de salir cierra el pie del lateral: a lo ancho y con aire, para
+   que no parezca pegado al estado de la conexion. */
+/* Los dos botones del pie del lateral, uno al lado del otro. */
+.rail-botones { display: flex; gap: 6px; margin-top: 8px; }
+.rail-botones .btn { flex: 1; justify-content: center; white-space: nowrap; }
+
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+.dot.ok  { background: var(--ok);  box-shadow: 0 0 0 3px rgba(63,191,127,.16); }
+.dot.err { background: var(--err); box-shadow: 0 0 0 3px rgba(242,88,91,.16); }
+
+.conn-ruc { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+
+/* -------------------------------------------------------------------- Main */
+
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+.topbar {
+  height: 54px;
+  flex: none;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 22px;
+}
+/* Los dos estados de conexion, en el hueco que ya sobraba de la barra.
+
+   Antes iban al pie del menu y se comian dos lineas de alto ahi. Se quedan
+   arriba y en pequeno porque no se leen a cada rato, pero tienen que estar a
+   la vista: distinguir beta de produccion es lo que evita emitir de verdad
+   creyendo que estas probando. */
+.estados {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  margin-right: 4px;
+  min-width: 0;
+}
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.estado .conn-ruc { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+
+/* En pantalla estrecha manda el titulo. */
+@media (max-width: 900px) { .estados { display: none; } }
+
+.topbar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.topbar .sub { color: var(--faint); font-size: 12.5px; margin-left: 10px; font-weight: 400; }
+
+.view { flex: 1; overflow-y: auto; padding: 22px; min-height: 0; }
+.view-inner { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* ------------------------------------------------------------------ Piezas */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.card-head {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-head h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.card-head .hint { font-size: 12px; color: var(--faint); }
+.card-body { padding: 16px; }
+
+.grid { display: grid; gap: 14px; }
+.grid.c2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.grid.c3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.grid.c4 { grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 16px; align-items: start; }
+@media (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
+
+/* Una sola columna: la vista de emitir ya no lleva el JSON al costado, asi
+   que el formulario ocupa el ancho entero y lo emitido aparece debajo. */
+.apilado { display: grid; gap: 16px; align-items: start; }
+
+/* Metricas */
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.metric .k {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.metric .v {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.metric .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.metric .d.up { color: var(--ok); }
+.metric .d.down { color: var(--err); }
+
+/* Formularios */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.field .help { font-size: 11.5px; color: var(--faint); }
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 10px;
+  width: 100%;
+  transition: border-color .12s, background .12s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  background: var(--surface-2);
+}
+input::placeholder, textarea::placeholder { color: var(--faint); }
+input[readonly] { color: var(--muted); }
+input.mono, select.mono { font-family: var(--mono); font-size: 12.5px; }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--faint) 50%), linear-gradient(135deg, var(--faint) 50%, transparent 50%); background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 28px; }
+
+.btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background .12s, border-color .12s, opacity .12s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-3); }
+.btn svg { width: 15px; height: 15px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--sobre-accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.danger { color: var(--err); border-color: rgba(242,88,91,.35); background: transparent; }
+.btn.danger:hover { background: rgba(242,88,91,.1); }
+.btn.sm { padding: 5px 9px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row.end { justify-content: flex-end; }
+.row.between { justify-content: space-between; }
+
+/* Pestañas */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 9px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tabs button:hover { color: var(--text); }
+.tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Tablas */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+td { padding: 10px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--surface-2); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }
+td.mono, th.mono { font-family: var(--mono); font-size: 12.5px; }
+
+.empty { padding: 34px 16px; text-align: center; color: var(--faint); font-size: 13px; }
+
+/* Distintivos */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.pill.ok   { color: var(--ok);   border-color: rgba(63,191,127,.35);  background: rgba(63,191,127,.09); }
+.pill.err  { color: var(--err);  border-color: rgba(242,88,91,.35);   background: rgba(242,88,91,.09); }
+.pill.warn { color: var(--warn); border-color: rgba(232,197,77,.35);  background: rgba(232,197,77,.09); }
+.pill.mute { color: var(--muted); border-color: var(--line);          background: var(--surface-2); }
+.pill.info { color: var(--info); border-color: rgba(90,169,230,.35);  background: rgba(90,169,230,.09); }
+
+.verb {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+.verb.get  { color: var(--info); }
+.verb.post { color: var(--ok); }
+
+/* Bloque de codigo / JSON */
+pre.code {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.65;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  margin: 0;
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre;
+  color: var(--muted);
+}
+pre.code .k { color: var(--info); }
+pre.code .s { color: var(--cadena); }
+pre.code .n { color: var(--num); }
+pre.code .b { color: var(--ok); }
+
+/* Consola inferior */
+.console {
+  flex: none;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+}
+.console-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.console-head .t {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.console-list { overflow-y: auto; border-top: 1px solid var(--line-soft); }
+.console.closed .console-list { display: none; }
+
+.call {
+  display: grid;
+  grid-template-columns: 62px 1fr 52px 62px 64px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+.call:hover { background: var(--surface-2); }
+.call .path { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.call .st { text-align: right; font-weight: 600; }
+.call .st.ok  { color: var(--ok); }
+.call .st.err { color: var(--err); }
+.call .ms, .call .at { text-align: right; color: var(--faint); }
+
+/* Ventana modal */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--velo);
+  display: none;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px;
+  z-index: 40;
+}
+/* Centrado con margenes automaticos, no con align-items: asi, cuando el modal
+   no cabe, se apoya arriba y se puede desplazar, en vez de salirse por encima
+   dejando el titulo y la barra fuera de alcance. */
+.scrim.on > .modal { margin: auto; }
+.scrim.on { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  width: min(920px, 96vw);
+  max-height: calc(100vh - 48px);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--sombra-modal);
+}
+.modal-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modal-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.modal-foot { padding: 12px 18px; border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; gap: 9px; }
+
+.x { background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px; line-height: 0; border-radius: 4px; }
+.x:hover { color: var(--text); background: var(--surface-2); }
+.x svg { width: 17px; height: 17px; }
+
+/* Avisos flotantes */
+.toasts { position: fixed; right: 18px; bottom: 18px; z-index: 60; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--muted);
+  border-radius: 5px;
+  padding: 10px 14px;
+  font-size: 13px;
+  max-width: 380px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.42);
+}
+.toast.ok  { border-left-color: var(--ok); }
+.toast.err { border-left-color: var(--err); }
+.toast .tt { font-weight: 600; margin-bottom: 1px; }
+.toast .td { color: var(--muted); font-size: 12.5px; }
+
+/* Grafica de barras de los doce meses */
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 84px; }
+.spark .bar { flex: 1; background: var(--surface-3); border-radius: 2px 2px 0 0; min-height: 2px; position: relative; }
+.spark .bar.on { background: var(--accent); }
+.spark-x { display: flex; gap: 3px; margin-top: 6px; }
+.spark-x span {
+  flex: 1;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--faint);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Lineas de detalle del comprobante */
+.items th { font-size: 9.5px; }
+.items td { padding: 6px 8px; }
+.items input, .items select { padding: 6px 8px; font-size: 12.5px; }
+/* La equis de quitar la linea vive en la ultima columna, y esa tabla es
+   ancha: con seis campos por fila se salia del borde y la equis quedaba
+   fuera de la vista. Ahora la columna se queda pegada a la derecha, siempre
+   visible, con el fondo de la tarjeta detras para que no se transparente lo
+   que pasa por debajo al desplazar. */
+.items th:last-child,
+.items td:last-child {
+  position: sticky;
+  right: 0;
+  width: 40px;
+  background: var(--surface);
+  box-shadow: -8px 0 8px -8px rgba(0, 0, 0, .5);
+}
+.items tbody tr:hover td:last-child { background: var(--surface-2); }
+
+.items .del { color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px; line-height: 0; }
+.items .del:hover { color: var(--err); }
+.items .del svg { width: 15px; height: 15px; }
+
+.totals { display: flex; flex-direction: column; gap: 5px; margin-left: auto; min-width: 230px; }
+.totals .l { display: flex; justify-content: space-between; gap: 18px; font-size: 13px; color: var(--muted); }
+.totals .l b { font-variant-numeric: tabular-nums; font-family: var(--mono); color: var(--text); font-weight: 500; }
+.totals .l.big { font-size: 15px; padding-top: 7px; border-top: 1px solid var(--line); color: var(--text); }
+.totals .l.big b { color: var(--accent); font-weight: 600; }
+
+.sep { height: 1px; background: var(--line-soft); border: 0; margin: 2px 0; }
+
+.note {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent-dim);
+  padding: 9px 12px;
+  border-radius: 0 4px 4px 0;
+  line-height: 1.6;
+}
+
+/* Un aviso no es una nota al pie: dice algo que conviene leer antes de pulsar
+   nada, como que las guias no se pueden probar en beta. */
+.note.aviso {
+  border-left-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  color: var(--texto-aviso);
+  padding: 12px 14px;
+}
+.note.aviso b { color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .view { padding: 14px; }
+}
+
+
+/* ===========================================================================
+   Pantalla de acceso
+   Tapa la aplicacion entera mientras no haya credenciales validas. Dos mitades:
+   la marca a la izquierda, el formulario a la derecha. Misma identidad oscura
+   que el resto: aqui no se cambia de tema a mitad de camino.
+   ======================================================================== */
+
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg);
+}
+.login[hidden] { display: none; }
+
+/* ---- Mitad de la marca ---- */
+
+.login-marca {
+  position: relative;
+  overflow: hidden;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--line);
+}
+
+/* Circulos de fondo: dan profundidad sin competir con el texto. */
+.login-marca::before,
+.login-marca::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.login-marca::before {
+  width: 460px; height: 460px;
+  top: -170px; right: -150px;
+  background: var(--accent-soft);
+}
+.login-marca::after {
+  width: 380px; height: 380px;
+  bottom: -160px; left: -110px;
+  background: rgba(90, 169, 230, 0.06);
+}
+
+.login-marca > * { position: relative; z-index: 1; }
+
+.login-logo { display: flex; align-items: center; gap: 12px; }
+.login-logo .cuadro {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-logo .cuadro svg { width: 22px; height: 22px; }
+.login-logo b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.login-logo span { display: block; font-size: 12px; color: var(--muted); }
+
+.login-eslogan { max-width: 460px; }
+
+.login-cinta {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.login-eslogan h1 {
+  margin: 22px 0 0;
+  font-size: 34px;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.login-eslogan h1 em { font-style: normal; color: var(--accent); }
+.login-eslogan p { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+
+.login-ventajas { margin-top: 38px; display: grid; gap: 18px; }
+.login-ventaja { display: flex; align-items: flex-start; gap: 14px; }
+.login-ventaja .ico {
+  width: 38px; height: 38px;
+  flex: 0 0 38px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-ventaja .ico svg { width: 18px; height: 18px; }
+.login-ventaja b { display: block; font-size: 13px; font-weight: 600; }
+.login-ventaja span { display: block; font-size: 12px; color: var(--faint); }
+
+.login-pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--faint);
+}
+.login-pie .v { font-family: var(--mono); font-size: 11px; }
+
+/* ---- Mitad del formulario ---- */
+
+.login-caja {
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow-y: auto;
+}
+
+.login-form { width: 100%; max-width: 380px; }
+.login-form h2 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.login-form .intro { margin: 8px 0 30px; color: var(--muted); font-size: 13px; }
+
+.login-form .field { margin-bottom: 16px; }
+.login-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.login-form input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 11px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.login-form input::placeholder { color: var(--faint); }
+.login-form input:focus { outline: none; border-color: var(--accent); }
+
+.login-entrar {
+  width: 100%;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--sobre-accent);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.login-entrar:hover { filter: brightness(1.06); }
+.login-entrar[disabled] { opacity: .55; cursor: default; filter: none; }
+.login-entrar svg { width: 16px; height: 16px; }
+
+.login-error {
+  margin-top: 16px;
+  border: 1px solid var(--err);
+  background: rgba(242, 88, 91, 0.09);
+  border-radius: 6px;
+  padding: 11px 13px;
+  font-size: 12.5px;
+  color: var(--texto-error);
+}
+.login-error[hidden] { display: none; }
+
+.login-legal { margin-top: 26px; text-align: center; font-size: 11px; color: var(--faint); }
+
+/* En pantallas estrechas la marca sobra: lo que hace falta es el formulario. */
+@media (max-width: 900px) {
+  .login { grid-template-columns: 1fr; }
+  .login-marca { display: none; }
+  .login-caja { padding: 32px 22px; }
+}
+
+/* ---- Credenciales de cortesia ----
+   Se ensenan a proposito: esta consola apunta a SUNAT beta, donde nada tiene
+   valor legal, y el cliente que llega de cero necesita poder entrar ya. */
+
+.login-demo {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 13px 14px;
+  background: var(--surface-2);
+}
+.login-demo[hidden] { display: none; }
+.login-demo .t {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.login-demo-par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.login-demo-par label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+.login-demo-par output {
+  display: block;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px 9px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.login-demo-usar {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--accent-dim);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  cursor: pointer;
+}
+.login-demo-usar:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* ---- Resultado de "Probar conexion" ----
+   En filas, no en tarjetas: las tarjetas son del Panel y ver aqui las mismas
+   hacia pensar que la herramienta habia cambiado de modulo. */
+
+.prueba-filas { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.prueba-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-2);
+  padding: 9px 12px;
+}
+.prueba-fila span { font-size: 12px; color: var(--muted); }
+.prueba-fila b { font-family: var(--mono); font-size: 12.5px; text-align: right; overflow-wrap: anywhere; }
+
+.prueba-crudo { margin-top: 14px; }
+.prueba-crudo summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prueba-crudo summary::-webkit-details-marker { display: none; }
+.prueba-crudo summary::before { content: "+"; color: var(--accent); }
+.prueba-crudo[open] summary::before { content: "-"; }
+.prueba-crudo pre { margin-top: 10px; }
+
+/* ===========================================================================
+   Sin barras de desplazamiento a la vista.
+
+   El navegador las pinta con los colores del sistema, claras, y sobre este
+   fondo oscuro cantaban como un fallo. Se ocultan en todo lo que se desplaza;
+   la rueda, el trackpad, el teclado y el arrastre siguen funcionando igual, y
+   ningun contenido queda fuera de alcance.
+   ======================================================================== */
+
+html, body,
+.view,
+.nav,
+.tabs,
+.table-wrap,
+.console-list,
+.modal-body,
+.login-caja,
+pre.code {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.view::-webkit-scrollbar,
+.nav::-webkit-scrollbar,
+.tabs::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+.console-list::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.login-caja::-webkit-scrollbar,
+pre.code::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ===========================================================================
+   Barra de emision: el formato del PDF a la izquierda, emitir a la derecha.
+   ======================================================================== */
+
+.barra-emitir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.formato { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.formato .k {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.formato .fmt {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.formato .fmt:hover { color: var(--text); border-color: var(--surface-3); }
+.formato .fmt.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Vista previa del comprobante dentro del modal. El fondo va blanco a
+   proposito: es una hoja, no una pantalla.
+
+   El ancho sale de los milimetros de cada formato, tomando el A4 (210 mm)
+   como el ancho entero. Antes todos se pintaban igual de anchos y un ticket
+   de 58 mm se veia como una hoja: no se entendia que se estaba eligiendo. */
+/* El visor toma el alto que sobra dentro del modal, no una medida fija.
+
+   Con una altura en vh, sumada a la cabecera, la fila de formatos y el pie,
+   el modal salia mas alto que la ventana y se cortaba por arriba. */
+.doc-visor {
+  /* La base en vh le da alto cuando el modal crece con su contenido; el
+     min-height a cero le deja encoger si el modal topa con la ventana. */
+  flex: 1 1 58vh;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visor-pdf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--hoja);
+}
+
+/* Nota: el visor va a lo ancho en los cuatro formatos, y es el propio lector
+   de PDF del navegador el que encaja la hoja o el ticket dentro, con su barra
+   de herramientas para acercar o imprimir. Se probo estrechar el marco segun
+   los milimetros del papel y quedaba peor: una tira con marco, sin barra y
+   con el documento diminuto. El formato ya se ve en el propio documento. */
+
+
+/* ===========================================================================
+   Modal de un comprobante emitido.
+
+   Ensena un documento entero, asi que pide mas sitio que un modal de aviso:
+   cuanto mas grande sea el hueco, mejor encaja el lector de PDF lo que sea
+   que le toque, una hoja A4 o un ticket de 58 mm. Ahi esta la diferencia,
+   no en estrechar el marco a mano.
+   ======================================================================== */
+
+.modal-doc {
+  width: min(1120px, 96vw);
+  height: calc(100vh - 48px);
+  transition: width .18s ease;
+}
+
+/* El ancho sigue al papel: una hoja pide ventana ancha y un ticket, angosta.
+   No baja de 520 px porque por debajo de eso la barra de herramientas del
+   lector de PDF se queda sin sitio y empieza a esconder botones. */
+.modal-doc.doc-A4   { width: min(1120px, 96vw); }   /* 210 mm */
+.modal-doc.doc-A5   { width: min(800px, 96vw); }    /* 148 mm */
+.modal-doc.doc-80mm { width: min(600px, 96vw); }    /*  80 mm */
+.modal-doc.doc-58mm { width: min(520px, 96vw); }    /*  58 mm */
+
+/* El cuerpo se queda con el alto que dejan cabecera y pie, y dentro de el
+   manda el visor. Sin esto el modal media 92vh pero el PDF seguia pequeno,
+   con el hueco vacio debajo. */
+.modal-doc .modal-body { flex: 1 1 auto; padding: 14px 16px; overflow: hidden; }
+.modal-doc .doc-visor { flex: 1 1 auto; }
+
+/* Las descargas, a la izquierda: es lo que se busca al abrirlo. Cerrar se va
+   al otro extremo, para no pulsarlo sin querer. */
+.modal-doc .modal-foot { justify-content: flex-start; }
+.modal-doc .modal-foot .ghost { margin-left: auto; }
+
+
+/* Interruptor de tema, arriba a la derecha. */
+.tema {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 6px 11px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  flex: none;
+}
+.tema:hover { color: var(--text); border-color: var(--surface-3); }
+.tema svg { width: 15px; height: 15px; }
+
+/* Un listado vacio tiene que distinguirse de uno averiado: dice que la API
+   respondio y adonde ir, en vez de dejar la pantalla en blanco. */
+.empty.vacio { padding: 40px 22px; line-height: 1.65; }
+.empty.vacio b { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty.vacio span { display: block; max-width: 52ch; margin: 0 auto; font-size: 12.5px; }
+
+/* Interruptor "Solo lo mio" de los listados. */
+.solo-mios {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.solo-mios input { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
+.solo-mios:hover { color: var(--text); }

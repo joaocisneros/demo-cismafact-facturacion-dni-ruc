@@ -1,0 +1,11 @@
+# Archivos del sistema y del editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Credenciales o configuraciones locales
+.env
+.env.*
+!.env.example
+
